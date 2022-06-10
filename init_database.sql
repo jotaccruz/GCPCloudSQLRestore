@@ -28,9 +28,11 @@ INSERT INTO metadataapi VALUES ('cloudsql_users','instance','instance','instance
 INSERT INTO metadataapi VALUES ('cloudsql_users','name','name','user',1,12);
 INSERT INTO metadataapi VALUES ('cloudsql_users','host','host','host',1,13);
 
-INSERT INTO metadataapi VALUES ('cloudsql_backups','status','status','status',1,1);
-INSERT INTO metadataapi VALUES ('cloudsql_backups','id','id','id',1,2);
-INSERT INTO metadataapi VALUES ('cloudsql_backups','endTime','endTime','endTime',1,3);
+INSERT INTO metadataapi VALUES ('cloudsql_backups','id','id','id',1,1);
+INSERT INTO metadataapi VALUES ('cloudsql_backups','status','status','status',1,2);
+INSERT INTO metadataapi VALUES ('cloudsql_backups','startTime','startTime','startTime',1,3);
+INSERT INTO metadataapi VALUES ('cloudsql_backups','endTime','endTime','endTime',1,4);
+
 
 CREATE TABLE metadatadb ( entity VARCHAR(250),  query VARCHAR(600), fields VARCHAR(250), status INT);
 INSERT INTO metadatadb VALUES ('mysql', "SELECT TABLE_SCHEMA, TABLE_NAME, IFNULL(ROUND((data_length + index_length) / 1024 / 1024, 1),0) 'MB', IFNULL(DATE_FORMAT(CREATE_TIME,'%d/%m/%y'),'01/01/05') CREATE_TIME, IFNULL(DATE_FORMAT(UPDATE_TIME,'%d/%m/%y'),'01/01/05') UPDATE_TIME FROM information_schema.tables WHERE TABLE_SCHEMA NOT IN ('mysql','sys','information_schema','performance_schema')", "['TABLE_SCHEMA','TABLE_NAME','MB','CREATE_TIME','UPDATE_TIME']",1);

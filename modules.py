@@ -64,8 +64,8 @@ def get_variables_dynamic(event):
             variables['backupRunId'] = eventdata['backupRunId']
         if 'BackupDate' in eventdata:
             variables['BackupDate'] = eventdata['BackupDate']
-        if 'Level' in eventdata:
-            variables['Level'] = eventdata['Level']
+        if 'IDsOnly' in eventdata:
+            variables['IDsOnly'] = eventdata['IDsOnly']
 
 
     return variables
@@ -129,6 +129,34 @@ def skipInstance(instance):
             return 0
         else:
             return 1
+
+# [START list_sql_instance_backups]
+def list_sql_instance_backups(cloudsql,SourceInstance):
+    InstanceBackups = []
+    try:
+        request = cloudsql.backupRuns().list(project=SourceInstance['project'], instance=SourceInstance['instance'])
+        response = request.execute()
+
+        if 'error' not in response:
+            variables = get_variables()
+            backups_fields = get_entity_fields(variables,"cloudsql_backups")
+            for backups in response['items']:
+                InstanceBackup = {}
+                #if databases['name'] not in ['sys','mysql','information_schema','performance_schema']:
+                #print(instances)
+                for key in backups_fields:
+                    InstanceBackup[key[3]] = glom(backups,key[1],default='N/A')
+                InstanceBackups.append(InstanceBackup)
+    except Exception as error:
+        variables = get_variables()
+        databases_fields = get_entity_fields(variables,"cloudsql_backups")
+        InstanceBackup = {}
+        for key in databases_fields:
+            InstanceBackup[key[3]] = 'N/A'
+        InstanceBackups.append(InstanceBackup)
+        return InstanceBackups
+    return InstanceBackups
+# [END list_sql_instance_backups]
 
 # [START list_sql_instance_databases]
 def list_sql_instance_databases(cloudsql,projectName='na',instanceName='na'):
@@ -339,32 +367,3 @@ def flatten_json(y):
 
     flatten(y)
     return out
-
-
-# [START list_sql_instance_backups]
-def list_sql_instance_backups(cloudsql,variable):
-    InstanceBackups = []
-    try:
-        request = cloudsql.backupRuns().list(project=variable['SourceProject'], instance=variable['SourceInstance'])
-        response = request.execute()
-
-        if 'error' not in response:
-            variables = get_variables()
-            backups_fields = get_entity_fields(variables,"cloudsql_backups")
-            for backups in response['items']:
-                InstanceBackup = {}
-                #if databases['name'] not in ['sys','mysql','information_schema','performance_schema']:
-                #print(instances)
-                for key in backups_fields:
-                    InstanceBackup[key[3]] = glom(backups,key[1],default='N/A')
-                InstanceBackups.append(InstanceBackup)
-    except Exception as error:
-        variables = get_variables()
-        databases_fields = get_entity_fields(variables,"cloudsql_backups")
-        InstanceBackup = {}
-        for key in databases_fields:
-            InstanceBackup[key[3]] = 'N/A'
-        InstanceBackups.append(InstanceBackup)
-        return InstanceBackups
-    return InstanceBackups
-# [END list_sql_instance_backups]

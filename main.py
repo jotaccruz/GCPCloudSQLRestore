@@ -44,6 +44,8 @@ def CloudSQLRestore(event,context):
 
     variables = get_variables_dynamic(event)
 
+    #Preparing Source and Target Instance smetadata to be able to run some validations
+
     computer = build('cloudresourcemanager', 'v1')
     projects = list_projects(computer)
 
@@ -52,33 +54,59 @@ def CloudSQLRestore(event,context):
     for project in projects:
         instances = instances + cloudsqlinstances(project['NAME'])
 
-    #Preparing Instances metadata to be able to run some validations
+    if 'backupRunId' in variables:
+        SourceInstance = sinstance(instances,variables)
+        TargetInstance = tinstance(instances,variables)
+        if SourceInstance:
+            if TargetInstance:
+                restoreinstance(SourceInstance,TargetInstance,variables)
+            else:
+                logger.warning('All the necessary metadata not supplied')
+        else:
+            logger.warning('All the necessary metadata not supplied')
+    else:
+        SourceInstance = sinstance(instances,variables)
+        if SourceInstance:
+            listallbackups(SourceInstance)
+        else:
+            logger.warning('Source Instance metadata not supplied')
+
+def sinstance(instances,variables):
     SourceInstanceSupplied = 0
-    TargetInstanceSupplied = 0
     SourceInstance = {}
-    TargetInstance = {}
     for instance in instances:
         if (variables['SourceInstance'] == instance['instance']) and SourceInstanceSupplied != 1:
             if (variables['SourceProject'] == instance['project']):
                 SourceInstance = instance
                 SourceInstanceSupplied = 1
+    return SourceInstance
+
+def tinstance(instances,variables):
+    TargetInstanceSupplied = 0
+    TargetInstance = {}
+    for instance in instances:
         if (variables['TargetInstance'] == instance['instance']) and TargetInstanceSupplied != 1:
             if (variables['TargetProject'] == instance['project']):
                 TargetInstance = instance
                 TargetInstanceSupplied = 1
+    return TargetInstance
 
-    #restoreinstance(SourceInstance,TargetInstance,variables)
-
-    listallbackups(SourceInstance,TargetInstance,variables)
-
-    #logger.warning(backup)
-    #logger.warning(position)
-
-def listallbackups(SourceInstance,TargetInstance,variables):
+def listallbackups(SourceInstance):
     cloudsql = build('sqladmin','v1beta4')
 
-    InstanceBackups = list_sql_instance_backups(cloudsql,variables)
-    logger.warning(InstanceBackups)
+    InstanceBackups = list_sql_instance_backups(cloudsql,SourceInstance)
+
+    Backups = []
+    for Backup in InstanceBackups:
+        if Backup['status']=='SUCCESSFUL':
+            Backups.append(Backup)
+
+    Backups_df = pd.DataFrame(Backups)
+    Backups_df = Backups_df.sort_values(by="startTime",ascending=False)
+    logger.warning(Backups_df)
+
+    return Backups
+
 
 def restoreinstance(SourceInstance,TargetInstance,variables):
     if SourceInstance['version'] == TargetInstance['version']:
