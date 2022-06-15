@@ -34,6 +34,7 @@ import os
 import sys
 import io
 
+
 logger = logging.getLogger()
 project = ""
 projects = []
@@ -61,7 +62,20 @@ def CloudSQLRestore(event,context):
             if TargetInstance:
                 restoreinstance(SourceInstance,TargetInstance,variables)
             else:
-                logger.warning('All the necessary metadata not supplied')
+                logger.warning('Creating the Target CloudSQL Instance...')
+
+                operation = create_sqlinstance(variables['TargetProject'],SourceInstance['zone'],generate_random_name(variables['TargetInstance'],5),SourceInstance['tier'],SourceInstance['DiskGb'],SourceInstance['version'],"Pass12345")
+                wait_for_operation(variables['TargetProject'], operation['name'])
+                variables['TargetInstance'] = operation['targetId']
+
+                print("""
+            CloudSQL Instance {} created.
+            It will take a minute or two for the instance to complete work.
+            """.format(operation['targetId']))
+                for project in projects:
+                    instances = instances + cloudsqlinstances(project['NAME'])
+                TargetInstance = tinstance(instances,variables)
+                restoreinstance(SourceInstance,TargetInstance,variables)
         else:
             logger.warning('All the necessary metadata not supplied')
     else:
@@ -103,7 +117,12 @@ def listallbackups(SourceInstance):
 
     Backups_df = pd.DataFrame(Backups)
     Backups_df = Backups_df.sort_values(by="startTime",ascending=False)
-    logger.warning(Backups_df)
+    b_buf = io.StringIO()
+    # saving a data frame to a buffer (same as with a regular file):
+    Backups_df.to_csv(b_buf)
+    b_buf.seek(0)
+    fname = SourceInstance['instance']+'_backups.csv'
+    bucket(b_buf,fname)
 
     return Backups
 
@@ -134,15 +153,15 @@ def restoreinstance(SourceInstance,TargetInstance,variables):
                         logger.warning(response)
 
                     else:
-                        logger.warning("Target Replication replica")
+                        logger.warning("CloudSQL Target Instance Replication master")
                 else:
-                    logger.warning("Target Replication master")
+                    logger.warning("CloudSQL Target Instance Replication replica")
             else:
-                logger.warning("Target not Running")
+                logger.warning("CloudSQL Target Instance not Running")
         else:
-            logger.warning("Target Storage not enought")
+            logger.warning("CloudSQL Target Instance Storage not enought")
     else:
-        logger.warning("Target Storage different version")
+        logger.warning("CloudSQL Target Instance Different version")
 
 
 def cloudsqlinstances(proj):

@@ -17,6 +17,9 @@ INSERT INTO metadataapi VALUES ('cloudsql','settings.activationPolicy','activati
 INSERT INTO metadataapi VALUES ('cloudsql','settings.dataDiskSizeGb','dataDiskSizeGb','DiskGb',1,11);
 INSERT INTO metadataapi VALUES ('cloudsql','masterInstanceName','masterInstanceName','master',1,12);
 INSERT INTO metadataapi VALUES ('cloudsql','replicaNames.0','replicaNames','replica',1,13);
+INSERT INTO metadataapi VALUES ('cloudsql','settings.locationPreference.zone','zone','zone',1,14);
+INSERT INTO metadataapi VALUES ('cloudsql','settings.tier','tier','tier',1,15);
+
 
 
 INSERT INTO metadataapi VALUES ('cloudsql_databases','project','project','project',1,7);
@@ -32,6 +35,7 @@ INSERT INTO metadataapi VALUES ('cloudsql_backups','id','id','id',1,1);
 INSERT INTO metadataapi VALUES ('cloudsql_backups','status','status','status',1,2);
 INSERT INTO metadataapi VALUES ('cloudsql_backups','startTime','startTime','startTime',1,3);
 INSERT INTO metadataapi VALUES ('cloudsql_backups','endTime','endTime','endTime',1,4);
+
 
 
 CREATE TABLE metadatadb ( entity VARCHAR(250),  query VARCHAR(600), fields VARCHAR(250), status INT);
