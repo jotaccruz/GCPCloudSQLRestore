@@ -3,10 +3,15 @@
 "SourceProject":"ti-dba-devenv-01"
 ,"SourceInstance":"cloudsqlcollectors"
 ,"TargetProject":"ti-dba-devenv-01"
-,"TargetInstance":"cloudsqlcollectors-clone"
-,"CreateOnFlight":"1"
-,"backupRunId":""
-,"BackupDate":"2022-06-08T05:00:00.000Z"
-,"IDsOnly":"Yes"
+,"TargetInstance":"cloudsqlcollectors-clones"
+,"backupRunId":"1654743600000"
 }
 }
+
+gcloud pubsub topics publish CloudSQLRestore --message=”{"""data""":{"""SourceProject""":"""ti-ai-ballina-googl""","""SourceInstance""":"""ti-ai-ballina-cs-01""","""TargetProject""":"""ti-dba-devenv-01""","""TargetInstance""":"""cloudsqlcollectors-clones""","""backupRunId""":"""1655269200000"""}}”
+gcloud pubsub topics publish CloudSQLRestore --message=”{"""data""":{"""SourceProject""":"""ti-dba-devenv-01""","""SourceInstance""":"""cloudsqlcollectors""","""TargetProject""":"""ti-dba-devenv-01""","""TargetInstance""":"""cloudsqlcollectors-c-replica""","""backupRunId""":"""1654743600000"""}}”
+
+gcloud pubsub topics publish CloudSQLRestore --message=”{"""data""":{"""SourceProject""":"""ti-ai-ballina-googl""","""SourceInstance""":"""ti-ai-ballina-cs-01""","""TargetProject""":"""ti-dba-devenv-01""","""TargetInstance""":"""cloudsqlcollectors-clones"""}}”
+gcloud pubsub topics publish CloudSQLRestore --message=”{"""data""":{"""SourceProject""":"""ti-dba-devenv-01""","""SourceInstance""":"""cloudsqlcollectors""","""TargetProject""":"""ti-dba-devenv-01""","""TargetInstance""":"""cloudsqlcollectors-c"""}}”
+
+gcloud pubsub topics publish CloudSQLRestore --message=”{"""data""":{"""SourceProject""":"""ti-ai-ballina-googl""","""SourceInstance""":"""ti-ai-ballina-cs-01""","""TargetProject""":"""ti-dba-devenv-01""","""TargetInstance""":"""cloudsqlcollectors-clo-vfcgo""","""backupRunId""":"""1655269200000"""}}”

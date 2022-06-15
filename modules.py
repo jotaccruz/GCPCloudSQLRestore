@@ -1,5 +1,7 @@
 from pprint import pprint
 from googleapiclient.errors import HttpError
+from googleapiclient.discovery import build
+
 import dbDriver
 from dbDriver import *
 import json
@@ -9,6 +11,10 @@ import credential
 from credential import *
 import logging
 import ast
+import base64
+import random
+import string
+import time
 
 # This global variable is declared with a value of `None`, instead of calling
 # `init_connection_engine()` immediately, to simplify testing. In general, it
@@ -48,7 +54,9 @@ def get_variables_dynamic(event):
     variables['credential'] = mycredentials
 
     if 'data' in event:
-        eventdata = event['data']
+        event = base64.b64decode(event['data']).decode('utf-8')
+        eventjson = json.loads(event)
+        eventdata = eventjson['data']
 
         if 'SourceProject' in eventdata:
             variables['SourceProject'] = eventdata['SourceProject']
@@ -58,16 +66,8 @@ def get_variables_dynamic(event):
             variables['TargetProject'] = eventdata['TargetProject']
         if 'TargetInstance' in eventdata:
             variables['TargetInstance'] = eventdata['TargetInstance']
-        if 'CreateOnFlight' in eventdata:
-            variables['CreateOnFlight'] = eventdata['CreateOnFlight']
         if 'backupRunId' in eventdata:
             variables['backupRunId'] = eventdata['backupRunId']
-        if 'BackupDate' in eventdata:
-            variables['BackupDate'] = eventdata['BackupDate']
-        if 'IDsOnly' in eventdata:
-            variables['IDsOnly'] = eventdata['IDsOnly']
-
-
     return variables
 
 
@@ -206,115 +206,6 @@ def get_entity_query(variables):
             query.append(row)
     return query
 
-def get_database(variables):
-    fields = ast.literal_eval(variables['query'][0][1])
-
-    database = []
-    if variables["type"]=='mysql':
-        db = None
-        db = db or init_connection_engine(variables)
-        with db.connect() as conn:
-            stmt = sqlalchemy.text(
-                variables['query'][0][0]
-            )
-            # Execute the query and fetch all results
-            entity_query = conn.execute(stmt).fetchall()
-            # Convert the results into a list of dicts representing databases
-            for row in entity_query:
-                sqlDatabase = {}
-                sqlDatabase['project'] = variables["project"]
-                sqlDatabase['instance'] = variables["instanceName"]
-                for field in range(0,len(fields)):
-                    sqlDatabase[fields[field]] = row[fields[field]]
-                database.append(sqlDatabase)
-    else:
-        for db in variables["db_list"]:
-            variables["db_name"] = db["database"]
-            if variables["db_name"] != 'master' and variables["db_name"] != 'model' and variables["db_name"] != 'msdb' and variables["db_name"] != 'tempdb':
-                db = None
-                db = db or init_connection_engine(variables)
-
-                with db.connect() as conn:
-                    stmt = sqlalchemy.text(
-                        variables['query'][0][0]
-                    )
-                    # Execute the query and fetch all results
-                    entity_query = conn.execute(stmt).fetchall()
-                    # Convert the results into a list of dicts representing databases
-                    for row in entity_query:
-                        sqlDatabase = {}
-                        sqlDatabase['project'] = variables["project"]
-                        sqlDatabase['instance'] = variables["instanceName"]
-                        sqlDatabase['TABLE_SCHEMA'] = variables["db_name"]
-                        for field in range(0,len(fields)):
-                            sqlDatabase[fields[field]] = row[fields[field]]
-                        database.append(sqlDatabase)
-    return database
-
-# [START list_sql_instance_users]
-def list_sql_instance_users(cloudsql,projectName,instanceName):
-    sqlUsers = []
-    try:
-        if instanceName=='na':
-            req = cloudsql.users().list(project=projectName)
-
-        else:
-            req = cloudsql.users().list(project=projectName,instance=instanceName)
-
-        resp = req.execute()
-
-        if 'error' not in resp:
-            variables = get_variables()
-            users_fields = get_entity_fields(variables,"cloudsql_users")
-            for users in resp['items']:
-                sqlUser = {}
-                #if databases['name'] not in ['sys','mysql','information_schema','performance_schema']:
-                #print(instances)
-                for key in users_fields:
-                    sqlUser[key[3]] = glom(users,key[1],default='N/A')
-                sqlUsers.append(sqlUser)
-    except Exception as error:
-        variables = get_variables()
-        users_fields = get_entity_fields(variables,"cloudsql_users")
-        sqlUser = {}
-        for key in users_fields:
-            sqlUser[key[3]] = 'N/A'
-        sqlUsers.append(sqlUser)
-        return sqlUsers
-    return sqlUsers
-# [END list_sql_instance_users]
-
-# [START list_sql_instance_users]
-def list_sql_instance_grants(cloudsql,projectName,instanceName):
-    sqlUsers = []
-    try:
-        if instanceName=='na':
-            req = cloudsql.users().list(project=projectName)
-
-        else:
-            req = cloudsql.users().list(project=projectName,instance=instanceName)
-
-        resp = req.execute()
-
-        if 'error' not in resp:
-            users_fields = get_entity_fields("cloudsql_users")
-            for users in resp['items']:
-                sqlUser = {}
-                #if databases['name'] not in ['sys','mysql','information_schema','performance_schema']:
-                #print(instances)
-                for key in users_fields:
-                    sqlUser[key[3]] = glom(users,key[1],default='N/A')
-                sqlUsers.append(sqlUser)
-    except Exception as error:
-        databases_fields = get_entity_fields("cloudsql_users")
-        sqlUser = {}
-        for key in databases_fields:
-            sqlUser[key[3]] = 'N/A'
-        sqlUsers.append(sqlUser)
-        return sqlUsers
-    return sqlUsers
-# [END list_sql_instance_users]
-
 # [START getFileUrl]
 def getFileUrl(filename,directory):
         if getattr(sys, 'frozen', False): # Running as compiled
@@ -331,24 +222,6 @@ def readFileFromOS(filename):
         data=file.read()
     return data
 # [END readFileFromOS]
-
-
-# [START wait_for_operation]
-def wait_for_operation(cloudsql, project, operation):
-    print('Waiting for operation to finish...')
-    while True:
-        result = cloudsql.operations().get(
-            project=project,
-            operation=operation).execute()
-
-        if result['status'] == 'DONE':
-            print("done.")
-            if 'error' in result:
-                raise Exception(result['error'])
-            return result
-        time.sleep(1)
-# [END wait_for_operation]
-# wait_for_operation(cloudsql, "ti-is-devenv-01", operation)
 
 def flatten_json(y):
     out = {}
@@ -367,3 +240,113 @@ def flatten_json(y):
 
     flatten(y)
     return out
+
+
+# [START destroy_sqlinstance]
+def destroy_sqlinstance(projectname,sqlinstance_name):
+    cloudsql = build('sqladmin','v1beta4')
+    return cloudsql.instances().delete(project=projectname,instance=sqlinstance_name).execute()
+# [END destroy_sqlinstance]
+# destroy_sqlinstances(cloudsql,"ti-is-devenv-01","sql1")
+
+
+# [START wait_for_operation]
+def wait_for_operation(project, operation):
+    cloudsql = build('sqladmin','v1beta4')
+    logger.warning('Waiting for operation to finish...')
+    while True:
+        result = cloudsql.operations().get(
+            project=project,
+            operation=operation).execute()
+
+        if result['status'] == 'DONE':
+            logging.warning("done.")
+            if 'error' in result:
+                raise Exception(result['error'])
+            return result
+        time.sleep(1)
+# [END wait_for_operation]
+# wait_for_operation(cloudsql, "ti-is-devenv-01", operation)
+
+
+# [START get_random_string]
+def get_random_string(length):
+    letters = string.ascii_lowercase
+    result_str = ''.join(random.choice(letters) for i in range(length))
+    return result_str
+# [END get_random_string]
+# get_random_string(6)
+
+
+# [START generate_random_name]
+def generate_random_name(sqlinstance_name,length):
+	sqlinstance_name = sqlinstance_name + "-" + get_random_string(length)
+	return sqlinstance_name
+# [END generate_random_name]
+# generate_random_name("prefix",6)
+
+
+# [START create_instance]
+def create_sqlinstance(project, zone, sqlinstance_name, machine_type, ssd_size, sqlversion, saPasswd):
+    # Configure the SQL Instance
+    cloudsql = build('sqladmin','v1beta4')
+    regions = zone.rfind('-',0,2)-1
+    config = {
+        'name': sqlinstance_name,
+        'gceZone': zone,
+        'region': zone[0:regions],
+        'databaseVersion': sqlversion,
+        'rootPassword': saPasswd,
+        'settings': {
+            'locationPreference':{
+                'zone': zone
+            },
+            'userLabels': {
+                'owner': 'dba',
+                'purpose': 'restore_test_automation'
+            },
+            'tier': machine_type,
+            'dataDiskSizeGb': ssd_size,
+            'ipConfiguration': {
+                'authorizedNetworks': [
+                    {
+                        'value': '208.181.137.109',
+                        #"expirationTime": '2021-10-02T15:01:23Z',
+                        'name': 'VDI'
+                    }
+                ]
+            },
+        },
+    }
+    return cloudsql.instances().insert(
+        project=project,
+        body=config).execute()
+# [END create_instance]
+# create_sqlinstance(cloudsql,"ti-is-devenv-01","us-west1-a",generate_random_name(5),"db-custom-4-15360",100,'SQLSERVER_2017_WEB',"Pass12345")
+
+
+# [START import_instance]
+def import_sqlinstance(project, sqlinstance_name,database_name,filetype):
+    cloudsql = build('sqladmin','v1beta4')
+    config = {
+        'importContext': {
+            'uri': 'gs://dba-freenas/SUSWEYAK15_EvoDb_Testing_FULL_20200325_011850.bak',
+            'database': database_name,
+            'fileType': filetype
+        }
+    }
+
+    return cloudsql.instances().import_(
+    	project=project,
+    	instance=sqlinstance_name,
+    	body=config).execute()
+# [END import_instance]
+# import_sqlinstance(cloudsql,"ti-is-devenv-01","us-west1-a",instances['targetID'],'EvoDb_Testing','BAK')
+
+
+# [START generate_random_name]
+def generate_random_name(sqlinstance_name,length):
+    sqlinstance_name = sqlinstance_name + "-" + get_random_string(length)
+    return sqlinstance_name
+# [END generate_random_name]
+# generate_random_name("prefix",6)
