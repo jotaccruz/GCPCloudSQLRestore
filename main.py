@@ -62,7 +62,7 @@ def CloudSQLRestore(event,context):
             if TargetInstance:
                 restoreinstance(SourceInstance,TargetInstance,variables)
             else:
-                logger.warning('Creating the Target CloudSQL Instance...')
+                logger.warning("Creating the Target CloudSQL Instance...")
 
                 operation = create_sqlinstance(variables['TargetProject'],SourceInstance['zone'],generate_random_name(variables['TargetInstance'],5),SourceInstance['tier'],SourceInstance['DiskGb'],SourceInstance['version'],"Pass12345")
                 wait_for_operation(variables['TargetProject'], operation['name'])
@@ -77,13 +77,13 @@ def CloudSQLRestore(event,context):
                 TargetInstance = tinstance(instances,variables)
                 restoreinstance(SourceInstance,TargetInstance,variables)
         else:
-            logger.warning('All the necessary metadata not supplied')
+            logger.warning("All the necessary metadata not supplied")
     else:
         SourceInstance = sinstance(instances,variables)
         if SourceInstance:
             listallbackups(SourceInstance)
         else:
-            logger.warning('Source Instance metadata not supplied')
+            logger.warning("Source Instance metadata not supplied")
 
 def sinstance(instances,variables):
     SourceInstanceSupplied = 0
@@ -150,12 +150,10 @@ def restoreinstance(SourceInstance,TargetInstance,variables):
                         response = request.execute()
 
                         # TODO: Change code below to process the `response` dict:
-                        logger.warning(response)
-
                     else:
-                        logger.warning("CloudSQL Target Instance Replication master")
+                        logger.warning("CloudSQL Target Instance Replication MASTER")
                 else:
-                    logger.warning("CloudSQL Target Instance Replication replica")
+                    logger.warning("CloudSQL Target Instance Replication REPLICA")
             else:
                 logger.warning("CloudSQL Target Instance not Running")
         else:
